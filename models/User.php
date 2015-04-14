@@ -2,7 +2,9 @@
 
 namespace app\models;
 
-class User extends \yii\base\Object implements \yii\web\IdentityInterface
+use Yii;
+
+class User extends \yii\db\ActiveRecord implements \yii\web\IdentityInterface
 {
     public $id;
     public $username;
@@ -10,94 +12,114 @@ class User extends \yii\base\Object implements \yii\web\IdentityInterface
     public $authKey;
     public $accessToken;
 
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
-
-    /**
-     * @inheritdoc
-     */
-    public static function findIdentity($id)
+    public static function tableName()
     {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
+        return 'usuario';
     }
 
     /**
      * @inheritdoc
      */
-    public static function findIdentityByAccessToken($token, $type = null)
-    {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
+     public static function findIdentity($id)
+      {
+        $dbUser = self::find()->where(["usuario_id" => $id])->one();
+
+        if(!count($dbUser)){
+             return null;
         }
 
-        return null;
-    }
+        return new static($dbUser);
+      }
 
-    /**
-     * Finds user by username
-     *
-     * @param  string      $username
-     * @return static|null
-     */
-    public static function findByUsername($username)
-    {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
+     /**
+      * @inheritdoc
+      */
+     public static function findIdentityByAccessToken($token, $type = null)
+     {
+         foreach (self::$users as $user) {
+             if ($user['accessToken'] === $token) {
+                 return new static($user);
+             }
+         }
 
-        return null;
-    }
+         return null;
+     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
+     /**
+      * Finds user by username
+      *
+      * @param  string      $username
+      * @return static|null
+      */
+     public static function findByUsername($username)
+     {
+         $dbUser = self::find()
+                 ->where([
+                     "lower(nombre_usuario)" => $username,
+                     "activo" => 1,
+                 ])
+                 ->one();
 
-    /**
-     * @inheritdoc
-     */
-    public function getAuthKey()
-    {
-        return $this->authKey;
-    }
+         if (!count($dbUser)) {
+             return null;
+         }
 
-    /**
-     * @inheritdoc
-     */
-    public function validateAuthKey($authKey)
-    {
-        return $this->authKey === $authKey;
-    }
+         return new static($dbUser);
+     }
 
-    /**
-     * Validates password
-     *
-     * @param  string  $password password to validate
-     * @return boolean if password provided is valid for current user
-     */
-    public function validatePassword($password)
-    {
-        return $this->password === $password;
-    }
+     /**
+      * @inheritdoc
+      */
+     public function getId()
+     {
+         return $this->usuario_id;
+     }
+
+     /**
+      * @inheritdoc
+      */
+     public function getAuthKey()
+     {
+         return $this->authKey;
+     }
+
+     /**
+      * @inheritdoc
+      */
+     public function validateAuthKey($authKey)
+     {
+         return $this->authKey === $authKey;
+     }
+
+     public function getUsername(){
+
+         if($this->username === null && $this->nombre_usuario != null){
+
+             $this->username = $this->nombre_usuario;
+         }
+
+         return $this->username;
+     }
+
+     /**
+      * Validates password
+      *
+      * @param  string  $password password to validate
+      * @return boolean if password provided is valid for current user
+      */
+     public function validatePassword($password)
+     {
+         return $this->clave_usuario === $password;
+     }
+
+     public function getUsers(){
+
+         $dbUser = self::find();
+
+         if(!count($dbUser)){
+             return null;
+         }
+
+        return new static($dbUser);
+     }
 }
